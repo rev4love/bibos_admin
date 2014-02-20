@@ -135,7 +135,7 @@ msgstr "Password"
 
 #: system/forms.py:99
 msgid "Password (again)"
-msgstr "Password (again)"
+msgstr "Confirm Password"
 
 #: system/models.py:13
 msgid "status:New"
