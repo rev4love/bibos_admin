@@ -95,7 +95,7 @@ msgstr "Kan status niet veranderen van {0} naar {1}"
 #: job/models.py:218 system/views.py:374
 #, python-format
 msgid "Can only restart jobs with status %s"
-msgstr "Can alleen taken met status %s herstarten"
+msgstr "kan alleen taken met status %s herstarten"
 
 #: job/models.py:252
 msgid "String"
@@ -135,7 +135,7 @@ msgstr "Wachtwoord"
 
 #: system/forms.py:99
 msgid "Password (again)"
-msgstr "Wachtwoord (bevestig)"
+msgstr "Bevestig wachtwoord"
 
 #: system/models.py:13
 msgid "status:New"
@@ -151,7 +151,7 @@ msgstr "Update"
 
 #: system/models.py:94
 msgid "owner configuration"
-msgstr "eigenaarconfiguratie"
+msgstr "eigenaar configuratie"
 
 #: system/models.py:101
 msgid "version"
@@ -193,7 +193,7 @@ msgstr "Configuratie voor %s geupdate"
 #: system/views.py:603
 #, python-format
 msgid "Script %s updated"
-msgstr "Script %s geudate"
+msgstr "Script %s geupdate"
 
 #: system/views.py:649 system/views.py:670
 msgid "You must specify at least one group or pc"
