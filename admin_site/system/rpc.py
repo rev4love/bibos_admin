@@ -387,19 +387,31 @@ def push_security_events(pc_uid, csv_data):
 
     for data in csv_data:
         csv_split = data.split(",")
+        # Too complex. Should have been a key value data set.
+        # We need index 1 before index 0.
+        enumerate_object = enumerate(csv_split)
+        time_stamp = next(enumerate_object)
+        security_problem_id = next(enumerate_object)
+        if len(csv_split) < 4:
+            summary = ''
+        else:
+            summary next(enumerate_object)
+
+        complete_log = next(enumerate_object)
+
         try:
-            security_problem = SecurityProblem.objects.get(uid=csv_split[1])
+            security_problem = SecurityProblem.objects.get(uid=security_problem_id)
 
             new_security_event = SecurityEvent(problem=security_problem, pc=pc)
             new_security_event.ocurred_time = (
-                datetime.strptime(csv_split[0],
+                datetime.strptime(time_stamp,
                                   '%Y%m%d%H%M'))
             new_security_event.reported_time = datetime.now()
-            new_security_event.summary = csv_split[2]
-            new_security_event.complete_log = csv_split[3]
+            new_security_event.summary = summary
+            new_security_event.complete_log = complete_log
             new_security_event.save()
-	    logger.debug('Security problem saved for pc %s', str(pc.name))
-        except IndexError:
+            logger.debug('Security problem saved for pc %s', str(pc.name))
+        except Exception as e:
             logger.warning('Index error ocurred trying to push security event from pc %s. Stack trace %s',
                         str(pc.name), e)
             return False
