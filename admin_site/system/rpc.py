@@ -1,6 +1,6 @@
 # This module contains the implementation of the XML-RPC API used by the
 # client.
-
+import logging
 import system.proxyconf
 import system.utils
 
@@ -11,10 +11,12 @@ from models import PC, Site, Distribution, Configuration, ConfigurationEntry
 from models import PackageList, Package, PackageStatus, CustomPackages
 from models import Job, Script, SecurityProblem, SecurityEvent
 
+logger = logging.getLogger(__name__)
 
 def register_new_computer(name, uid, distribution, site, configuration):
     """Register a new computer with the admin system - after registration, the
     computer will be submitted for approval."""
+    logger.debug('Register new computer called with name %s', str(name))
 
     try:
         new_pc = PC.objects.get(uid=uid)
@@ -67,6 +69,7 @@ def upload_dist_packages(distribution_uid, package_data):
     BibOS distribution. A BibOS distribution is here defined as a completely
     fresh install of a standardized Debian-like system which is to be supported
     by the BibOS admin."""
+    logger.debug('Upload dist packages called.')
 
     if distribution_uid in settings.CLOSED_DISTRIBUTIONS:
         # Ignore
@@ -106,6 +109,8 @@ def send_status_info(pc_uid, package_data, job_data, update_required):
 
     # 1. Lookup PC, update "last_seen" field
     pc = PC.objects.get(uid=pc_uid)
+
+    logger.debug('Send status info called from pc %s', str(pc.name))
 
     if not pc.is_active:
         # Fail silently
@@ -186,6 +191,8 @@ def get_instructions(pc_uid, update_data):
     These jobs will generally take the form of bash scripts."""
 
     pc = PC.objects.get(uid=pc_uid)
+
+    logger.debug('Get instructions called from pc %s', str(pc.name))
 
     pc.last_seen = datetime.now()
     pc.save()
@@ -313,6 +320,11 @@ def get_instructions(pc_uid, update_data):
 
 
 def insertSecurityProblemUID(securityproblem):
+    """Collects security scripts for the specific problem, and replaces the security_problem_id.
+    """
+    logger.debug('Insert security problem UID called with securityproblem %s',
+                str(securityproblem.name))
+
     script = Script.objects.get(id=securityproblem.script_id)
     code = script.executable_code.read()
     code = str(code).replace("%SECURITY_PROBLEM_UID%", securityproblem.uid)
@@ -325,6 +337,8 @@ def insertSecurityProblemUID(securityproblem):
 
 
 def get_proxy_setup(pc_uid):
+    logger.debug('Get proxy setup called.')
+
     pc = PC.objects.get(uid=pc_uid)
     if not pc.is_active:
         return 0
@@ -333,6 +347,9 @@ def get_proxy_setup(pc_uid):
 
 def push_config_keys(pc_uid, config_dict):
     pc = PC.objects.get(uid=pc_uid)
+
+    logger.debug('Push config keys called from pc %s', str(pc.name))
+
     if not pc.is_active:
         return 0
 
@@ -366,6 +383,8 @@ def push_config_keys(pc_uid, config_dict):
 def push_security_events(pc_uid, csv_data):
     pc = PC.objects.get(uid=pc_uid)
 
+    logger.debug('Push security events called from pc %s', str(pc.name))
+
     for data in csv_data:
         csv_split = data.split(",")
         try:
@@ -379,7 +398,10 @@ def push_security_events(pc_uid, csv_data):
             new_security_event.summary = csv_split[2]
             new_security_event.complete_log = csv_split[3]
             new_security_event.save()
+	    logger.debug('Security problem saved for pc %s', str(pc.name))
         except IndexError:
+            logger.warning('Index error ocurred trying to push security event from pc %s. Stack trace %s',
+                        str(pc.name), e)
             return False
 
         # Notify subscribed users
