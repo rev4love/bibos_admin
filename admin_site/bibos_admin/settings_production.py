@@ -204,12 +204,12 @@ LOGGING = {
             'filters': ['require_debug_false'],
             'class': 'django.utils.log.AdminEmailHandler'
         },
-	'file': {
-            'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': '/home/bibos/bibos_admin/admin_site/var/debug.log',
-            'formatter': 'verbose'
-        },
+        'file': {
+                'level': 'ERROR',
+                'class': 'logging.FileHandler',
+                'filename': '/home/bibos/bibos_admin/admin_site/var/debug.log',
+                'formatter': 'verbose'
+            },
     },
     'loggers': {
         'django.request': {
