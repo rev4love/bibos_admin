@@ -383,37 +383,48 @@ def push_config_keys(pc_uid, config_dict):
 def push_security_events(pc_uid, csv_data):
     pc = PC.objects.get(uid=pc_uid)
 
-    logger.debug('Push security events called from pc %s', str(pc.name))
+    logger.debug('Push security events called from pc {0}'.format(str(pc.name)))
 
     for data in csv_data:
         csv_split = data.split(",")
         # Too complex. Should have been a key value data set.
         # We need index 1 before index 0.
-        enumerate_object = enumerate(csv_split)
-        time_stamp = next(enumerate_object)
-        security_problem_id = next(enumerate_object)
-        if len(csv_split) < 4:
+        try:
+            time_stamp = csv_split[0]
+            security_problem_id = csv_split[1]
             summary = ''
-        else:
-            summary next(enumerate_object)
+            complete_log = ''
+            if len(csv_split) == 4:
+                summary = csv_split[2]
+                complete_log = csv_split[3]
+            else:
+                complete_log = csv_split[2]
 
-        complete_log = next(enumerate_object)
+            logger.debug('All data is retreived from security data for pc {0}'.format(str(pc.name)))
+        except IndexError as e:
+            logger.error('Index error ocurred trying to push security event from pc {0}. Stack trace {1}'.format(
+                           str(pc.name), e))
+            return False
+
 
         try:
             security_problem = SecurityProblem.objects.get(uid=security_problem_id)
-
+            logger.debug('Security problem found for pc {0}'.format(str(pc.name)))
             new_security_event = SecurityEvent(problem=security_problem, pc=pc)
+            logger.debug('New security event created for pc {0}'.format(str(pc.name)))
             new_security_event.ocurred_time = (
                 datetime.strptime(time_stamp,
                                   '%Y%m%d%H%M'))
             new_security_event.reported_time = datetime.now()
+            logger.debug('Reported time and ocurred time set for pc {0}'.format(str(pc.name)))
             new_security_event.summary = summary
             new_security_event.complete_log = complete_log
+            logger.debug('Security event is ready to be saved for pc {0}'.format(str(pc.name)))
             new_security_event.save()
-            logger.debug('Security problem saved for pc %s', str(pc.name))
-        except Exception as e:
-            logger.warning('Index error ocurred trying to push security event from pc %s. Stack trace %s',
-                        str(pc.name), e)
+            logger.debug('Security problem saved for pc {0}'.format(str(pc.name)))
+        except Exception as ex:
+            logger.error('Something went wrong while saving security event for pc {0}'.format(str(pc.name)))
+            logger.error('Exception message: {0}'.format(ex))
             return False
 
         # Notify subscribed users
