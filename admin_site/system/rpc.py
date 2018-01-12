@@ -13,6 +13,7 @@ from models import Job, Script, SecurityProblem, SecurityEvent
 
 logger = logging.getLogger(__name__)
 
+
 def register_new_computer(name, uid, distribution, site, configuration):
     """Register a new computer with the admin system - after registration, the
     computer will be submitted for approval."""
@@ -320,7 +321,8 @@ def get_instructions(pc_uid, update_data):
 
 
 def insertSecurityProblemUID(securityproblem):
-    """Collects security scripts for the specific problem, and replaces the security_problem_id.
+    """ Collects security scripts for the specific problem,
+        and replaces the security_problem_id.
     """
     logger.debug('Insert security problem UID called with securityproblem %s',
                 str(securityproblem.name))
@@ -383,7 +385,11 @@ def push_config_keys(pc_uid, config_dict):
 def push_security_events(pc_uid, csv_data):
     pc = PC.objects.get(uid=pc_uid)
 
-    logger.debug('Push security events called from pc {0}'.format(str(pc.name)))
+    logger.debug(
+        'Push security events called from pc {0}'.format(
+            str(pc.name)
+        )
+    )
 
     for data in csv_data:
         csv_split = data.split(",")
@@ -400,30 +406,65 @@ def push_security_events(pc_uid, csv_data):
             else:
                 complete_log = csv_split[2]
 
-            logger.debug('All data is retreived from security data for pc {0}'.format(str(pc.name)))
+            logger.debug(
+                'All data is retreived from security data for pc {0}'.format(
+                    str(pc.name)
+                )
+            )
         except IndexError as e:
-            logger.error('Index error ocurred trying to push security event from pc {0}. Stack trace {1}'.format(
-                           str(pc.name), e))
+            logger.error(
+                'Index error ocurred trying to push '
+                'security event from pc {0}. Stack trace {1}'.format(
+                           str(pc.name), e)
+            )
             return False
 
-
         try:
-            security_problem = SecurityProblem.objects.get(uid=security_problem_id)
-            logger.debug('Security problem found for pc {0}'.format(str(pc.name)))
-            new_security_event = SecurityEvent(problem=security_problem, pc=pc)
-            logger.debug('New security event created for pc {0}'.format(str(pc.name)))
+            security_problem = SecurityProblem.objects.get(
+                uid=security_problem_id
+            )
+
+            logger.debug(
+                'Security problem found for pc {0}'.format(
+                    str(pc.name)
+                )
+            )
+
+            new_security_event = SecurityEvent(
+                problem=security_problem, pc=pc
+            )
+
+            logger.debug(
+                'New security event created for pc {0}'.format(
+                    str(pc.name)
+                )
+            )
+
             new_security_event.ocurred_time = (
                 datetime.strptime(time_stamp,
-                                  '%Y%m%d%H%M'))
-            new_security_event.reported_time = datetime.now()
-            logger.debug('Reported time and ocurred time set for pc {0}'.format(str(pc.name)))
+                                  '%Y%m%d%H%M')
+            )
+
             new_security_event.summary = summary
             new_security_event.complete_log = complete_log
-            logger.debug('Security event is ready to be saved for pc {0}'.format(str(pc.name)))
+            logger.debug(
+                'Security event is ready to be saved for pc {0}'.format(
+                    str(pc.name)
+                )
+            )
             new_security_event.save()
-            logger.debug('Security problem saved for pc {0}'.format(str(pc.name)))
+            logger.debug(
+                'Security problem saved for pc {0}'.format(
+                    str(pc.name)
+                )
+            )
         except Exception as ex:
-            logger.error('Something went wrong while saving security event for pc {0}'.format(str(pc.name)))
+            logger.error(
+                'Something went wrong while saving '
+                'security event for pc {0}'.format(
+                    str(pc.name)
+                )
+            )
             logger.error('Exception message: {0}'.format(ex))
             return False
 
