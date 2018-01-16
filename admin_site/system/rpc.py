@@ -1,3 +1,5 @@
+#-*- coding: utf-8 -*-
+
 # This module contains the implementation of the XML-RPC API used by the
 # client.
 import logging
@@ -17,7 +19,7 @@ logger = logging.getLogger(__name__)
 def register_new_computer(name, uid, distribution, site, configuration):
     """Register a new computer with the admin system - after registration, the
     computer will be submitted for approval."""
-    logger.debug('Register new computer called with name %s', str(name))
+    logger.debug('Register new computer called with name {0}'.format(name))
 
     try:
         new_pc = PC.objects.get(uid=uid)
@@ -111,7 +113,7 @@ def send_status_info(pc_uid, package_data, job_data, update_required):
     # 1. Lookup PC, update "last_seen" field
     pc = PC.objects.get(uid=pc_uid)
 
-    logger.debug('Send status info called from pc %s', str(pc.name))
+    logger.debug('Send status info called from pc {0}'.format(pc.name))
 
     if not pc.is_active:
         # Fail silently
@@ -193,7 +195,7 @@ def get_instructions(pc_uid, update_data):
 
     pc = PC.objects.get(uid=pc_uid)
 
-    logger.debug('Get instructions called from pc %s', str(pc.name))
+    logger.debug('Get instructions called from pc {0}'.format(pc.name))
 
     pc.last_seen = datetime.now()
     pc.save()
@@ -285,7 +287,7 @@ def get_instructions(pc_uid, update_data):
                               exclude(alert_groups__isnull=False))
 
     for security_problem in site_security_problems:
-        security_objects.append(insertSecurityProblemUID(security_problem))
+        security_objects.append(insert_security_problem_uid(security_problem))
 
     # Then check for security scripts covering groups the pc is a member of.
     pc_groups = pc.pc_groups.all()
@@ -296,7 +298,7 @@ def get_instructions(pc_uid, update_data):
                                  filter(alert_groups=group.id))
             if len(security_problems) > 0:
                 for problem in security_problems:
-                    security_objects.append(insertSecurityProblemUID(problem))
+                    security_objects.append(insert_security_problem_uid(problem))
 
     scripts = []
 
@@ -320,12 +322,12 @@ def get_instructions(pc_uid, update_data):
     return result
 
 
-def insertSecurityProblemUID(securityproblem):
+def insert_security_problem_uid(securityproblem):
     """ Collects security scripts for the specific problem,
         and replaces the security_problem_id.
     """
-    logger.debug('Insert security problem UID called with securityproblem %s',
-                str(securityproblem.name))
+    logger.debug('Insert security problem UID called with securityproblem {0}'.format(
+        securityproblem.name))
 
     script = Script.objects.get(id=securityproblem.script_id)
     code = script.executable_code.read()
@@ -350,7 +352,7 @@ def get_proxy_setup(pc_uid):
 def push_config_keys(pc_uid, config_dict):
     pc = PC.objects.get(uid=pc_uid)
 
-    logger.debug('Push config keys called from pc %s', str(pc.name))
+    logger.debug('Push config keys called from pc {0}'.format(pc.name))
 
     if not pc.is_active:
         return 0
@@ -387,7 +389,7 @@ def push_security_events(pc_uid, csv_data):
 
     logger.debug(
         'Push security events called from pc {0}'.format(
-            str(pc.name)
+            pc.name
         )
     )
 
@@ -408,14 +410,14 @@ def push_security_events(pc_uid, csv_data):
 
             logger.debug(
                 'All data is retreived from security data for pc {0}'.format(
-                    str(pc.name)
+                    pc.name
                 )
             )
         except IndexError as e:
             logger.error(
                 'Index error ocurred trying to push '
                 'security event from pc {0}. Stack trace {1}'.format(
-                           str(pc.name), e)
+                           pc.name, e)
             )
             return False
 
@@ -426,7 +428,7 @@ def push_security_events(pc_uid, csv_data):
 
             logger.debug(
                 'Security problem found for pc {0}'.format(
-                    str(pc.name)
+                    pc.name
                 )
             )
 
@@ -436,9 +438,11 @@ def push_security_events(pc_uid, csv_data):
 
             logger.debug(
                 'New security event created for pc {0}'.format(
-                    str(pc.name)
+                    pc.name
                 )
             )
+
+            new_security_event.reported_time = datetime.now()
 
             new_security_event.ocurred_time = (
                 datetime.strptime(time_stamp,
@@ -449,20 +453,20 @@ def push_security_events(pc_uid, csv_data):
             new_security_event.complete_log = complete_log
             logger.debug(
                 'Security event is ready to be saved for pc {0}'.format(
-                    str(pc.name)
+                    pc.name
                 )
             )
             new_security_event.save()
             logger.debug(
                 'Security problem saved for pc {0}'.format(
-                    str(pc.name)
+                    pc.name
                 )
             )
         except Exception as ex:
             logger.error(
                 'Something went wrong while saving '
                 'security event for pc {0}'.format(
-                    str(pc.name)
+                    pc.name
                 )
             )
             logger.error('Exception message: {0}'.format(ex))
