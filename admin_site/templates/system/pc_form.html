@@ -77,7 +77,7 @@ class="active"
           set:</span> <strong>{{ selected_pc.last_seen|date:'Y-m-d H:i:s' }} </strong></p>
     {% endif %}
     {% if security_event != "Ingen advarsler"%}
-      <p style="float:right; clear:right;"><span class="muted"> &nbsp;Seneste advarsel set:</span> <strong>{{ security_event.reported_time|date }} </strong> {{ security_event.reported_time|time }}</p>
+      <p style="float:right; clear:right;"><span class="muted"> &nbsp;Seneste advarsel set:</span> <strong>{{ security_event.reported_time|date:'Y-m-d H:i:s' }} </strong> </p>
     {% endif %}    
     
     <form name="pc_update_form" id="pc_update_form" action="{% url 'computer' site.uid selected_pc.uid %}" method="post">
