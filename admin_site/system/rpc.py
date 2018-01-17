@@ -286,6 +286,8 @@ def get_instructions(pc_uid, update_data):
                               filter(site_id=pc.site).
                               exclude(alert_groups__isnull=False))
 
+    import pdb
+    pdb.set_trace()
     for security_problem in site_security_problems:
         security_objects.append(insert_security_problem_uid(security_problem))
 
@@ -327,7 +329,7 @@ def insert_security_problem_uid(securityproblem):
         and replaces the security_problem_id.
     """
     logger.debug('Insert security problem UID called with securityproblem {0}'.format(
-        securityproblem.name))
+        securityproblem.name.encode('utf-8')))
 
     script = Script.objects.get(id=securityproblem.script_id)
     code = script.executable_code.read()
