@@ -91,12 +91,18 @@ DATABASES = {
 
 and do
 
-    python manage.py syncdb
+    python manage.py makemigrations
+
+    python manage.py migrate
 
 Import the current available package names to the database:
 
 /home/bibos/bibos_admin/admin_site/scripts/import_package_names.py \
-    'http://packages.ubuntu.com/precise/allpackages?format=txt.gz'
+    'http://packages.ubuntu.com/xenial/allpackages?format=txt.gz'
+
+Remember to export Django settings:
+
+export DJANGO_SETTINGS_MODULE=bibos_admin.settingss
 
 
 Apache Setup
@@ -122,7 +128,7 @@ Setup the bibos-archive / proxy
     sudo mkdir /home/bibos/archive-site/docs
     sudo mkdir /home/bibos/archive-site/logs
 
-Open /home/bibos/archive-site/conf/site.conf and add the collowing,
+Open /home/bibos/archive-site/conf/site.conf and add the following,
 substituting your own values for servername/alias and serveradmin
 
 ### CONFIG START ###
