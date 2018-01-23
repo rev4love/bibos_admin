@@ -105,7 +105,7 @@ Apache Setup
 Copy the setup file from admin_site/etc to the Apache sites-available
 folder.
 
- sudo cp etc/apache.conf /etc/apache2/sites-available/bibos_admin
+ sudo cp etc/apache.conf /etc/apache2/sites-available/bibos_admin.conf
 
 Now create custom logs, enable SSL, enable site and restart Apache.
 
