@@ -93,6 +93,7 @@ class BibOSAdmin(object):
     def push_security_events(self, pc_uid, csv_data):
         return self._rpc_srv.push_security_events(pc_uid, csv_data)
 
+
 if __name__ == '__main__':
     """Simple test suite."""
     import netifaces
