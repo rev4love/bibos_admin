@@ -513,9 +513,6 @@ def collect_security_events(now):
 
 
 def send_security_events(now):
-    (remote_url, uid) = get_url_and_uid()
-    remote = BibOSAdmin(remote_url)
-
     try:
         securitycheck_file = open(SECURITY_DIR +
                                   "/security_check_" + now + ".csv", "r")
@@ -528,6 +525,8 @@ def send_security_events(now):
     securitycheck_file.close()
 
     try:
+        (remote_url, uid) = get_url_and_uid()
+        remote = BibOSAdmin(remote_url)
         result = remote.push_security_events(uid, csv_data)
         if result == 0:
             check_file = open(SECURITY_DIR + "/lastcheck.txt", "w")
