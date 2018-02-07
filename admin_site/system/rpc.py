@@ -5,6 +5,7 @@
 import logging
 import system.proxyconf
 import system.utils
+from threading import Thread
 
 from datetime import datetime
 from django.conf import settings
@@ -202,77 +203,11 @@ def get_instructions(pc_uid, update_data):
 
     if not pc.is_active:
         # Fail silently
-        return ([], False)
+        return [], False
 
-    update_pkgs = update_data.get('updated_packages', [])
-    if len(update_pkgs) > 0:
-        for pdata in update_pkgs:
-            # Find or create the package in the global collection of packages
-            try:
-                p = Package.objects.get(
-                    name=pdata['name'],
-                    version=pdata['version']
-                )
-            except Package.DoesNotExist:
-                p = Package(
-                    name=pdata['name'],
-                    version=pdata['version'],
-                    description=pdata['description']
-                )
-                p.save()
-            # Change or create the package status for the package/PC
-            p_status = pc.package_list.statuses.filter(
-                package__name=pdata['name'],
-            ).delete()
-            p_status = PackageStatus(
-                status='install',
-                package=p,
-                package_list=pc.package_list
-            )
-            p_status.save()
-
-            pc.package_list.statuses.filter(
-                package__name=pdata['name'],
-                package__version=pdata['version'],
-            ).update(status='installed ok')
-
-    remove_pkgs = update_data.get('removed_packages', [])
-    if len(remove_pkgs) > 0:
-        pc.package_list.statuses.filter(package__name__in=remove_pkgs).delete()
-
-    # Get list of packages to install and remove.
-    to_install, to_remove = pc.pending_package_updates
-
-    # Add packages that are pending update to the list of packages we want
-    # installed, as apt-get will upgrade any package in the package list
-    # for apt-get install.
-    for p in pc.package_list.pending_upgrade_packages:
-        to_install.add(p.name)
-
-    # Make sure packages added to be upgraded now are no longer pending.
-    pc.package_list.flag_needs_upgrade(
-        [p.name for p in pc.package_list.pending_upgrade_packages]
-    )
-
-    # Make sure packages we just installed are not flagged for removal
-    for name in [p['name'] for p in update_pkgs]:
-        if name in to_remove:
-            pc.custom_packages.update_package_status(name, True)
-            to_remove.remove(name)
-
-    # Make sure packages we just removed are not flagged for installation
-    for name in remove_pkgs:
-        if name in to_install:
-            pc.custom_packages.update_package_status(name, False)
-            to_install.remove(name)
-
-    if len(to_remove):
-        sc = Script.get_system_script('remove_packages.sh')
-        sc.run_on_pc(pc, ','.join(to_remove))
-
-    if len(to_install):
-        sc = Script.get_system_script('install_or_upgrade_packages.sh')
-        sc.run_on_pc(pc, ','.join(to_install))
+    t = Thread(target=handle_packages, args=(pc, update_data))
+    t.start()
+    # handle_packages(pc, update_data)
 
     jobs = []
     for job in pc.jobs.filter(status=Job.NEW):
@@ -282,15 +217,13 @@ def get_instructions(pc_uid, update_data):
 
     security_objects = []
     # First check for security scripts covering the site
-    site_security_problems = (SecurityProblem.objects.
+    """site_security_problems = (SecurityProblem.objects.
                               filter(site_id=pc.site).
                               exclude(alert_groups__isnull=False))
 
-    import pdb
-    pdb.set_trace()
     for security_problem in site_security_problems:
         security_objects.append(insert_security_problem_uid(security_problem))
-
+    """
     # Then check for security scripts covering groups the pc is a member of.
     pc_groups = pc.pc_groups.all()
     if len(pc_groups) > 0:
@@ -322,6 +255,67 @@ def get_instructions(pc_uid, update_data):
         result['do_send_package_info'] = True
 
     return result
+
+
+def handle_packages(pc, update_data):
+    update_pkgs = update_data.get('updated_packages', [])
+    if len(update_pkgs) > 0:
+        for pdata in update_pkgs:
+            # Find or create the package in the global collection of packages
+            p = Package.objects.get_or_create(
+                name=pdata['name'],
+                version=pdata['version'],
+                defaults={'description': pdata['description']}
+            )
+
+            # Change or create the package status for the package/PC
+            p_status = pc.package_list.statuses.filter(
+                package__name=pdata['name'],
+            ).delete()
+            p_status = PackageStatus(
+                status='install',
+                package=p,
+                package_list=pc.package_list
+            )
+            p_status.save()
+
+            pc.package_list.statuses.filter(
+                package__name=pdata['name'],
+                package__version=pdata['version'],
+            ).update(status='installed ok')
+    remove_pkgs = update_data.get('removed_packages', [])
+    if len(remove_pkgs) > 0:
+        pc.package_list.statuses.filter(package__name__in=remove_pkgs).delete()
+
+    # Get list of packages to install and remove.
+    to_install, to_remove = pc.pending_package_updates
+    # Add packages that are pending update to the list of packages we want
+    # installed, as apt-get will upgrade any package in the package list
+    # for apt-get install.
+    for p in pc.package_list.pending_upgrade_packages:
+        to_install.add(p.name)
+
+    # Make sure packages added to be upgraded now are no longer pending.
+    pc.package_list.flag_needs_upgrade(
+        [p.name for p in pc.package_list.pending_upgrade_packages]
+    )
+    # Make sure packages we just installed are not flagged for removal
+    for name in [p['name'] for p in update_pkgs]:
+        if name in to_remove:
+            pc.custom_packages.update_package_status(name, True)
+            to_remove.remove(name)
+
+    # Make sure packages we just removed are not flagged for installation
+    for name in remove_pkgs:
+        if name in to_install:
+            pc.custom_packages.update_package_status(name, False)
+            to_install.remove(name)
+    if len(to_remove):
+        sc = Script.get_system_script('remove_packages.sh')
+        sc.run_on_pc(pc, ','.join(to_remove))
+    if len(to_install):
+        sc = Script.get_system_script('install_or_upgrade_packages.sh')
+        sc.run_on_pc(pc, ','.join(to_install))
 
 
 def insert_security_problem_uid(securityproblem):
@@ -410,61 +404,22 @@ def push_security_events(pc_uid, csv_data):
             else:
                 complete_log = csv_split[2]
 
-            logger.debug(
-                'All data is retreived from security data for pc {0}'.format(
-                    pc.name
-                )
-            )
-        except IndexError as e:
-            logger.error(
-                'Index error ocurred trying to push '
-                'security event from pc {0}. Stack trace {1}'.format(
-                           pc.name, e)
-            )
-            return False
-
-        try:
             security_problem = SecurityProblem.objects.get(
                 uid=security_problem_id
-            )
-
-            logger.debug(
-                'Security problem found for pc {0}'.format(
-                    pc.name
-                )
             )
 
             new_security_event = SecurityEvent(
                 problem=security_problem, pc=pc
             )
-
-            logger.debug(
-                'New security event created for pc {0}'.format(
-                    pc.name
-                )
-            )
-
             new_security_event.reported_time = datetime.now()
-
             new_security_event.ocurred_time = (
                 datetime.strptime(time_stamp,
                                   '%Y%m%d%H%M')
             )
-
             new_security_event.summary = summary
             new_security_event.complete_log = complete_log
-            logger.debug(
-                'Security event is ready to be saved for pc {0}'.format(
-                    pc.name
-                )
-            )
             new_security_event.save()
-            logger.debug(
-                'Security problem saved for pc {0}'.format(
-                    pc.name
-                )
-            )
-        except Exception as ex:
+        except (IndexError, Exception) as ex:
             logger.error(
                 'Something went wrong while saving '
                 'security event for pc {0}'.format(
