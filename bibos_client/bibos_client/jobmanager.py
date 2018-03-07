@@ -517,7 +517,8 @@ def send_security_events(now):
         securitycheck_file = open(SECURITY_DIR +
                                   "/security_check_" + now + ".csv", "r")
     except IOError:
-        # File does not exist. No events occured, since last check.
+        # File does not exist. No events occured, since last check. So we update check and returns
+        update_last_check(now)
         return False
 
     csv_data = [line for line in securitycheck_file]
@@ -529,9 +530,8 @@ def send_security_events(now):
         remote = BibOSAdmin(remote_url)
         result = remote.push_security_events(uid, csv_data)
         if result == 0:
-            check_file = open(SECURITY_DIR + "/lastcheck.txt", "w")
-            check_file.write(now)
-            check_file.close()
+            # Everything went fine so we update last check and removes reported security events.
+            update_last_check(now)
             os.remove(SECURITY_DIR + "/securityevent.csv")
 
         return result
@@ -540,6 +540,12 @@ def send_security_events(now):
         return False
     finally:
         os.remove(SECURITY_DIR + "/security_check_" + now + ".csv")
+
+
+def update_last_check(now):
+    check_file = open(SECURITY_DIR + "/lastcheck.txt", "w")
+    check_file.write(now)
+    check_file.close()
 
 
 def handle_security_events():
