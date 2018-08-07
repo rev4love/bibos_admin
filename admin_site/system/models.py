@@ -331,7 +331,7 @@ class Site(models.Model):
             u.bibos_profile for u in User.objects.all().extra(
                 select={'lower_name': 'lower(username)'}
             ).order_by('lower_name')
-            if u.bibos_profile.site == self and u.bibos_profile.type != 0
+            if u.bibos_profile.sites == self and u.bibos_profile.type != 0
         ]
         return [p.user for p in profiles]
 

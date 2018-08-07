@@ -102,11 +102,13 @@ class SuperAdminOrThisSiteMixin(View):
         check_function = user_passes_test(
             lambda u:
             (u.bibos_profile.type == UserProfile.SUPER_ADMIN) or
-            (site and site == u.bibos_profile.site), login_url='/'
+            (site and u.bibos_profile.sites.get(pk=site.pk) is not None), login_url='/'
         )
+
         wrapped_super = check_function(
             super(SuperAdminOrThisSiteMixin, self).dispatch
         )
+
         return wrapped_super(*args, **kwargs)
 
 
@@ -189,28 +191,33 @@ class AdminIndex(RedirectView, LoginRequiredMixin):
     def get_redirect_url(self, **kwargs):
         """Redirect based on user. This view will use the RequireLogin mixin,
         so we'll always have a logged-in user."""
-        user = self.request.user
-        profile = user.bibos_profile
 
-        if profile.type == UserProfile.SUPER_ADMIN:
-            # Redirect to list of sites
-            url = '/sites/'
-        else:
-            # User belongs to one site only; redirect to that site
-            site_url = profile.site.url
-            url = '/site/{0}/'.format(site_url)
+        url = '/sites/'
+
         return url
 
 
 # Site overview list to be displayed for super user
-class SiteList(ListView, SuperAdminOnlyMixin):
+class SiteList(ListView, LoginRequiredMixin):
     """Displays list of sites."""
     model = Site
     context_object_name = 'site_list'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        user = self.request.user
+        profile = user.bibos_profile
+
+        if profile.type == UserProfile.SUPER_ADMIN:
+            context['site_list'] = Site.objects.all()
+        else:
+            context['site_list'] = profile.sites.all()
+        return context
+
 
 # Base class for Site-based passive (non-form) views
-class SiteView(DetailView,  SuperAdminOrThisSiteMixin):
+class SiteView(DetailView, SuperAdminOrThisSiteMixin):
     """Base class for all views based on a single site."""
     model = Site
     slug_field = 'uid'
@@ -1006,12 +1013,16 @@ class UserCreate(CreateView, UsersMixin, SuperAdminOrThisSiteMixin):
         self.object = form.save()
 
         site = get_object_or_404(Site, uid=self.kwargs['site_uid'])
-        UserProfile.objects.create(
+
+        new_user = UserProfile.objects.create(
             user=self.object,
             type=form.cleaned_data['usertype'],
-            site=site
         )
+
+        new_user.sites.add(site)
+
         result = super(UserCreate, self).form_valid(form)
+
         return result
 
     def get_success_url(self):
@@ -1276,7 +1287,7 @@ class SecurityProblemsView(SelectionMixin, SiteView):
             context['newform'] = SecurityProblemForm()
             context['newform'].fields[
                 'alert_users'
-            ].queryset = User.objects.filter(bibos_profile__site=site)
+            ].queryset = User.objects.filter(bibos_profile__sites=site)
             context['newform'].fields[
                 'alert_groups'
             ].queryset = site.groups.all()
