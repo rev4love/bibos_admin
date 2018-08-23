@@ -19,7 +19,7 @@ class="active"
 
     {% for user in user_list %}
     <li {% ifequal user selected_user %}class="active"{% endifequal %}><a
-        href="/site/{{ site.url }}/users/{{ user.username }}"><i class="icon-user"></i> {{ user.username }}</a></li>
+        href="/site/{{ site.url }}/users/{{ user.user.username }}"><i class="icon-user"></i> {{ user.user.username }}</a></li>
     {% endfor %}
   </ul>
   
